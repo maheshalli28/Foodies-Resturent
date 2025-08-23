@@ -10,7 +10,7 @@ const Products = () => {
       category: "Dinner",
       price: 35,
       status: true,
-      image: "src/assets/Idli.png",
+      image: "/assets/Idli.png",
     },
     {
       id: 2,
@@ -18,7 +18,7 @@ const Products = () => {
       category: "Biriyani",
       price: 135,
       status: false,
-      image: "src/assets/Mutton.png",
+      image: "/assets/Mutton.png",
     },
     {
       id: 3,
@@ -26,7 +26,7 @@ const Products = () => {
       category: "Lunch",
       price: 115,
       status: false,
-      image: "src/assets/pizza.jpg",
+      image: "/assets/pizza.jpg",
     },
     {
       id: 4,
@@ -34,7 +34,7 @@ const Products = () => {
       category: "Breakfast",
       price: 99,
       status: true,
-      image: "src/assets/omelette.png",
+      image: "/assets/omelette.png",
     },
     {
       id: 5,
@@ -42,7 +42,7 @@ const Products = () => {
       category: "Breakfast",
       price: 150,
       status: true,
-      image: "src/assets/Dosa.png",
+      image: "/assets/Dosa.png",
     },
     
   ]);
@@ -54,7 +54,7 @@ const Products = () => {
     category: "",
     price: "",
     status: true,
-    image: "scr/assets/Aloo-Paratha.png",
+    image: "/assets/Aloo-Paratha.png",
   });
 
   const handleChange = (e) => {

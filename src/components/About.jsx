@@ -15,14 +15,14 @@ const About = () => {
             <div className="row g-3">
               <div className="col-6">
                 <FadeInSection animation="animate__fadeInUp">
-                <img src="src/assets/image3.png" alt="img1" className="img-fluid " style={
+                <img src="/assets/image3.png" alt="img1" className="img-fluid " style={
                   { height: '250px',width:'300px', objectFit: 'cover' }
                 } />
                 </FadeInSection>
               </div>
               <div className="col-6">
                 <FadeInSection animation='animate__fadeInUp'>
-                <img src="src/assets/image2.png" alt="img2" className="img-fluid  mt-5" 
+                <img src="/assets/image2.png" alt="img2" className="img-fluid  mt-5" 
                 style={{
                   height: '200px', objectFit: 'cover' 
                 }}/>
@@ -30,13 +30,13 @@ const About = () => {
               </div>
               <div className="col-6 pt-0 ps-5">
                 <FadeInSection animation='animate__fadeInUp'>
-                <img src="src/assets/image1.png" alt="img3" className="img-fluid me-0 pe-0" style={{
+                <img src="/assets/image1.png" alt="img3" className="img-fluid me-0 pe-0" style={{
                   height: '180px',width:'180px', objectFit: 'cover'}  }/>
                   </FadeInSection>
               </div>
               <div className="col-6">
                 <FadeInSection animation='animate__fadeInUp'>
-                <img src="src/assets/image4.png" alt="img4" className="img-fluid " 
+                <img src="/assets/image4.png" alt="img4" className="img-fluid " 
                 style={
                   { height: '250px',width:'300px', objectFit: 'cover' }}/>
                   </FadeInSection>
