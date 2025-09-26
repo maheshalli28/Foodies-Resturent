@@ -1,14 +1,23 @@
+// CartPage.js
 import React, { useState } from "react";
-import "./Cart.css";
 import { RiDeleteBin5Line } from "react-icons/ri";
+import { useNavigate } from "react-router-dom";
+import "./Cart.css";
+import { useAuth } from "../context/AuthContext.jsx";
+import { getApiUrl, currentConfig } from "../config/api";
 
 const CartPage = ({ cartItems, setCartItems }) => {
   const [showModal, setShowModal] = useState(false);
-  const [address, setAddress] = useState('');
-  const [pincode, setPincode] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('cod');
+  const { user } = useAuth();
+  const [customerName, setCustomerName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [pincode, setPincode] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("cod");
   const [errors, setErrors] = useState({});
+  const navigate = useNavigate();
 
+  // 🔼 Increase quantity
   const increaseQty = (id) => {
     setCartItems((prev) =>
       prev.map((item) =>
@@ -17,6 +26,7 @@ const CartPage = ({ cartItems, setCartItems }) => {
     );
   };
 
+  // 🔽 Decrease quantity
   const decreaseQty = (id) => {
     setCartItems((prev) =>
       prev.map((item) =>
@@ -27,191 +37,161 @@ const CartPage = ({ cartItems, setCartItems }) => {
     );
   };
 
+  // ❌ Remove item
   const removeItem = (id) => {
     setCartItems((prev) => prev.filter((item) => item.id !== id));
   };
 
+  // 🧹 Clear cart
   const clearCart = () => {
     setCartItems([]);
   };
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  // 🧮 Totals
+  const subtotal = cartItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
   const deliveryFee = cartItems.length > 0 ? 2.99 : 0;
   const tax = +(subtotal * 0.08).toFixed(2);
   const total = subtotal + deliveryFee + tax;
 
+  // ✅ Form validation
   const validateForm = () => {
     const newErrors = {};
+    if (!customerName) newErrors.customerName = "Name is required";
+    if (!phone || phone.length !== 10) newErrors.phone = "Valid phone required";
     if (!address) newErrors.address = "Address is required";
-    if (!pincode || pincode.length !== 6) newErrors.pincode = "Valid pincode required";
+    if (!pincode || pincode.length !== 6)
+      newErrors.pincode = "Valid pincode required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const confirmOrder = () => {
-    if (!validateForm()) return;
-    alert("✅ Order placed!");
-    setCartItems([]);
-    setShowModal(false);
-    setAddress('');
-    setPincode('');
-    setPaymentMethod('cod');
+  // 🚀 Proceed to checkout: if logged in → go to confirm order; else prompt sign in
+  const proceedCheckout = () => {
+    if (!user) {
+      setShowModal(true);
+      return;
+    }
+    navigate('/confirm-order', {
+      state: {
+        cartItems,
+        prefill: {
+          username: user?.name || '',
+          email: user?.email || '',
+          phone,
+          address,
+          pincode,
+          paymentMethod
+        }
+      }
+    });
   };
 
   return (
-    <div className={`cart-container mt-5 py-5 ${showModal ? 'modal-open' : ''}`}>
-      <div className="cart-grid mt-3">
-        {/* Left - Cart Items */}
-        <div className="cart-box">
-          <div className="cart-header">
-            <div>
-              <h2 className="cart-title">Cart Items</h2>
-              <p className="cart-subtitle">{cartItems.length} items in your cart</p>
-            </div>
-            <button className="clear-btn" onClick={clearCart}>
+    <section id="cart" className="pt-5" >
+     
+    <div className="container py-5">
+     
+      <h2 className="fw-bold mb-4">Your Cart</h2>
+
+      {cartItems.length === 0 ? (
+        <div className="alert alert-info">Your cart is empty.</div>
+      ) : (
+        <div className="row">
+          {/* Left: Cart Items */}
+          <div className="col-md-8">
+            {cartItems.map((item) => (
+              <div
+                key={item.id}
+                className="d-flex justify-content-between align-items-center border-bottom py-3"
+              >
+                <div className="d-flex align-items-center">
+                  <img
+                    src={item.image?.startsWith('http') ? item.image : `${currentConfig.baseURL}${item.image}`}
+                    alt={item.title}
+                    className="rounded"
+                    style={{
+                      width: "70px",
+                      height: "70px",
+                      objectFit: "cover",
+                    }}
+                  />
+                  <div className="ms-3">
+                    <h6 className="fw-bold mb-1">{item.title}</h6>
+                    <div className="d-flex align-items-center gap-2">
+                      <button
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => decreaseQty(item.id)}
+                      >
+                        –
+                      </button>
+                      <span>{item.quantity}</span>
+                      <button
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => increaseQty(item.id)}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="d-flex align-items-center gap-3">
+                  <div className="fw-bold text-danger">
+                    ₹{(item.price * item.quantity).toFixed(2)}
+                  </div>
+                  <RiDeleteBin5Line
+                    className="fs-4 text-danger"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => removeItem(item.id)}
+                  />
+                </div>
+              </div>
+            ))}
+
+            <button className="btn btn-outline-danger mt-3" onClick={clearCart}>
               Clear Cart
             </button>
           </div>
 
-          <div className="cart-items">
-            {cartItems.length === 0 ? (
-              <p>Your cart is empty.</p>
-            ) : (
-              cartItems.map((item) => (
-                <div key={item.id} className="cart-item">
-                  <div className="cart-item-info">
-                    <img src={item.image} alt={item.title} className="cart-img" />
-                    <div>
-                      <h5>{item.title}</h5>
-                    </div>
-                  </div>
-
-                  <div className="cart-qty ms-3 me-3">
-                    <button onClick={() => decreaseQty(item.id)}>-</button>
-                    <span>{item.quantity}</span>
-                    <button onClick={() => increaseQty(item.id)}>+</button>
-                  </div>
-
-                  <div className="cart-price">
-                    <span className="text-dark fw-bold">
-                      ₹{(item.price * item.quantity).toFixed(2)}
-                    </span>
-                    <button className="delete-btn" onClick={() => removeItem(item.id)}>
-                      <RiDeleteBin5Line size={20} />
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
+          {/* Right: Summary */}
+          <div className="col-md-4">
+            <div className="card shadow-sm p-3">
+              <h5 className="fw-bold mb-3">Order Summary</h5>
+              <p>
+                <strong>Subtotal:</strong> ₹{subtotal.toFixed(2)}
+              </p>
+              <p>
+                <strong>Delivery Fee:</strong> ₹{deliveryFee.toFixed(2)}
+              </p>
+              <p>
+                <strong>Tax:</strong> ₹{tax.toFixed(2)}
+              </p>
+              <h5 className="fw-bold">Total: ₹{total.toFixed(2)}</h5>
+              <button
+                className="btn btn-primary w-100 mt-3"
+                onClick={proceedCheckout}
+              >
+                Proceed to Checkout
+              </button>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Right - Order Summary */}
-        <div className="summary-box">
-          <h2>Order Summary</h2>
-          <div className="summary-row">
-            <span>Subtotal</span>
-            <span>₹{subtotal.toFixed(2)}</span>
-          </div>
-          <div className="summary-row">
-            <span>Delivery Fee</span>
-            <span>₹{deliveryFee.toFixed(2)}</span>
-          </div>
-          <div className="summary-row">
-            <span>Tax</span>
-            <span>₹{tax.toFixed(2)}</span>
-          </div>
-          <div className="summary-total">
-            <span>Total</span>
-            <span className="text-danger fw-bold">₹{total.toFixed(2)}</span>
-          </div>
-          <button className="checkout-btn" onClick={() => setShowModal(true)}>
-            Proceed to Checkout
-          </button>
-          <button className="continue-btn">
-            <a href="/" className="text-secondary text-decoration-none">
-              Back to Menu
-            </a>
-          </button>
-        </div>
-      </div>
-
-      {/* Modal */}
+      {/* Checkout Modal */}
       {showModal && (
         <>
           <div className="modal fade show d-block" tabIndex="-1">
-            <div className="modal-dialog modal-dialog-centered modal-lg">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title">Confirm Your Order</h5>
-                  <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
-                </div>
-
-                <div className="modal-body">
-                  <div className="row">
-                    {/* Customer Details */}
-                    <div className="col-md-6 border-end pe-4">
-                      <h6 className="fw-bold mb-3">Customer Details</h6>
-                      <p><strong>Name:</strong> John Doe</p>
-                      <p><strong>Phone:</strong> 9876543210</p>
-
-                      <label className="form-label">Address:</label>
-                      <input
-                        type="text"
-                        className={`form-control mb-2 ${errors.address ? 'is-invalid' : ''}`}
-                        placeholder="Enter your address"
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
-                      />
-                      {errors.address && <div className="text-danger mb-2">{errors.address}</div>}
-
-                      <label className="form-label">Pincode:</label>
-                      <input
-                        type="number"
-                        className={`form-control mb-2 ${errors.pincode ? 'is-invalid' : ''}`}
-                        placeholder="Enter pincode"
-                        value={pincode}
-                        onChange={(e) => setPincode(e.target.value)}
-                      />
-                      {errors.pincode && <div className="text-danger mb-2">{errors.pincode}</div>}
-
-                      <label className="form-label">Payment Method:</label>
-                      <select
-                        className="form-select mb-3"
-                        value={paymentMethod}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                      >
-                        <option value="cod">Cash on Delivery</option>
-                        <option value="card">Credit/Debit Card</option>
-                        <option value="upi">UPI</option>
-                      </select>
-                    </div>
-
-                    {/* Order Details */}
-                    <div className="col-md-6 ps-4">
-                      <h6 className="fw-bold mb-3">Order Details</h6>
-                      <ul className="list-unstyled">
-                        {cartItems.map((item) => (
-                          <li key={item.id}>
-                            {item.title} × {item.quantity} – ₹{(item.price * item.quantity).toFixed(2)}
-                          </li>
-                        ))}
-                      </ul>
-                      <hr />
-                      <p><strong>Delivery Fee:</strong> ₹{deliveryFee.toFixed(2)}</p>
-                      <p><strong>Tax:</strong> ₹{tax.toFixed(2)}</p>
-                      <p className="fw-bold">Total: ₹{total.toFixed(2)}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="modal-footer">
-                  <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
-                    Cancel
-                  </button>
-                  <button className="btn btn-success" onClick={confirmOrder}>
-                    Confirm Order
-                  </button>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content p-3">
+                <h5 className="fw-bold mb-3">Proceed to Sign In</h5>
+                <p className="mb-3">Please sign in to continue to checkout.</p>
+                <div className="d-flex justify-content-end gap-2">
+                  <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Close</button>
+                  <button className="btn btn-danger" onClick={() => { setShowModal(false); navigate('/login'); }}>Sign In</button>
                 </div>
               </div>
             </div>
@@ -220,6 +200,7 @@ const CartPage = ({ cartItems, setCartItems }) => {
         </>
       )}
     </div>
+    </section>
   );
 };
 

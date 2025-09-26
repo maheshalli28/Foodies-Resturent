@@ -1,121 +1,193 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { getApiUrl, API_ENDPOINTS, currentConfig } from "../../config/api";
 import { FaDeleteLeft } from "react-icons/fa6";
 import { CiEdit } from "react-icons/ci";
 
 const Products = () => {
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      title: "Idli & Sambar",
-      category: "Dinner",
-      price: 35,
-      status: true,
-      image: "/assets/Idli.png",
-    },
-    {
-      id: 2,
-      title: "Chicken Biriyani",
-      category: "Biriyani",
-      price: 135,
-      status: false,
-      image: "/assets/Mutton.png",
-    },
-    {
-      id: 3,
-      title: "Pasta",
-      category: "Lunch",
-      price: 115,
-      status: false,
-      image: "/assets/pizza.jpg",
-    },
-    {
-      id: 4,
-      title: "Omelette",
-      category: "Breakfast",
-      price: 99,
-      status: true,
-      image: "/assets/omelette.png",
-    },
-    {
-      id: 5,
-      title: "Dosa",
-      category: "Breakfast",
-      price: 150,
-      status: true,
-      image: "/assets/Dosa.png",
-    },
-    
-  ]);
-
-  const [showModal, setShowModal] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [formData, setFormData] = useState({
     title: "",
     category: "",
     price: "",
-    status: true,
-    image: "/assets/Aloo-Paratha.png",
+    status: "true",
+    image: null,
   });
 
+  // Fetch products
+  const fetchProducts = async () => {
+    try {
+      const res = await axios.get(getApiUrl(API_ENDPOINTS.PRODUCTS.LIST));
+      setProducts(res.data);
+    } catch (err) {
+      console.error("❌ Error fetching products:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  // Handle input change
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData({ ...formData, [name]: value });
   };
 
-  const handleAdd = () => {
-    setEditingProduct(null);
-    setFormData({
-      title: "",
-      category: "",
-      price: "",
-      status: true,
-      image: "",
-    });
-    setShowModal(true);
+  // Handle file change
+  const handleFileChange = (e) => {
+    setFormData({ ...formData, image: e.target.files[0] });
   };
 
+  // Submit form (Add or Update)
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const data = new FormData();
+    data.append("title", formData.title);
+    data.append("category", formData.category);
+    data.append("price", formData.price);
+    data.append("status", formData.status);
+    if (formData.image) data.append("image", formData.image);
+
+    try {
+      if (editingProduct) {
+        await axios.put(getApiUrl(API_ENDPOINTS.PRODUCTS.UPDATE(editingProduct._id)), data, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        alert("✅ Product updated!");
+      } else {
+        // Add new
+        await axios.post(getApiUrl(API_ENDPOINTS.PRODUCTS.CREATE), data, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        alert("✅ Product added!");
+      }
+
+      setFormData({ title: "", category: "", price: "", status: "true", image: null });
+      setShowForm(false);
+      setEditingProduct(null);
+      fetchProducts(); // refresh
+    } catch (err) {
+      console.error(err);
+      alert("❌ Failed to save product");
+    }
+  };
+
+  // Edit product
   const handleEdit = (product) => {
     setEditingProduct(product);
-    setFormData(product);
-    setShowModal(true);
+    setFormData({
+      title: product.title,
+      category: product.category,
+      price: product.price,
+      status: product.status ? "true" : "false",
+      image: null,
+    });
+    setShowForm(true);
   };
 
-  const handleSave = () => {
-    if (editingProduct) {
-      setProducts(
-        products.map((p) =>
-          p.id === editingProduct.id ? { ...formData, id: editingProduct.id } : p
-        )
-      );
-    } else {
-      setProducts([...products, { ...formData, id: Date.now() }]);
+  // Delete product
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure?")) return;
+    try {
+      await axios.delete(getApiUrl(API_ENDPOINTS.PRODUCTS.DELETE(id)));
+      alert("🗑️ Product deleted");
+      fetchProducts();
+    } catch (err) {
+      console.error(err);
+      alert("❌ Failed to delete product");
     }
-    setShowModal(false);
-  };
-
-  const handleDelete = (id) => {
-    setProducts(products.filter((p) => p.id !== id));
   };
 
   return (
     <div className="container mt-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h4 className="fw-bold">Products</h4>
-        <button className="btn btn-danger fw-bold text-white" onClick={handleAdd}>
-          + Add Product
+        <button
+          className="btn btn-danger fw-bold text-white"
+          onClick={() => {
+            setShowForm(!showForm);
+            setEditingProduct(null);
+            setFormData({ title: "", category: "", price: "", status: "true", image: null });
+          }}
+        >
+          {showForm ? "Close Form" : "+ Add Product"}
         </button>
       </div>
 
-      {/* Search & Filter */}
-      <div className="d-flex justify-content-between mb-3">
-        <input type="text" placeholder="Search..." className="form-control w-50" />
-        <select className="form-select w-auto">
-          <option value="all">All</option>
-          <option value="breakfast">Breakfast</option>
-          <option value="lunch">Lunch</option>
-          <option value="dinner">Dinner</option>
-        </select>
-      </div>
+      {/* Add/Edit Form */}
+      {showForm && (
+        <form
+          onSubmit={handleSubmit}
+          encType="multipart/form-data"
+          className="p-3 mb-4 bg-light rounded shadow-sm"
+        >
+          <div className="mb-3">
+            <label className="form-label">Title</label>
+            <input
+              type="text"
+              name="title"
+              className="form-control"
+              value={formData.title}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="mb-3">
+          <label className="form-label">Category</label>
+              <select
+              name="category"
+              className="form-select"
+              value={formData.category}
+              onChange={handleChange}
+              required
+            >
+              <option value="">-- Select Category --</option>
+              <option value="Breakfast">Breakfast</option>
+              <option value="Lunch">Lunch</option>
+              <option value="Dinner">Dinner</option>
+              <option value="Desserts">Desserts</option>
+            </select>
+          </div>
+
+          <div className="mb-3">
+            <label className="form-label">Price</label>
+            <input
+              type="number"
+              name="price"
+              className="form-control"
+              value={formData.price}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="mb-3">
+            <label className="form-label">Status</label>
+            <select
+              name="status"
+              className="form-select"
+              value={formData.status}
+              onChange={handleChange}
+            >
+              <option value="true">Available</option>
+              <option value="false">Out of Stock</option>
+            </select>
+          </div>
+
+          <div className="mb-3">
+            <label className="form-label">Image</label>
+            <input type="file" className="form-control" onChange={handleFileChange} />
+          </div>
+
+          <button type="submit" className="btn btn-danger text-white">
+            {editingProduct ? "Update" : "Add"} Product
+          </button>
+        </form>
+      )}
 
       {/* Products Table */}
       <div className="table-responsive bg-white p-3 rounded shadow-sm">
@@ -127,29 +199,30 @@ const Products = () => {
               <th>Price</th>
               <th>Status</th>
               <th className="text-center">Actions</th>
-              <th className="text-center"> Remove</th>
+              <th className="text-center">Remove</th>
             </tr>
           </thead>
           <tbody>
             {products.map((product) => (
-              <tr key={product.id}>
+              <tr key={product._id}>
                 <td>
                   <div className="d-flex align-items-center">
-                    <img
-                      src={product.image}
-                      alt={product.title}
-                      className="rounded me-2"
-                      width="50"
-                      height="50"
-                    />
+                    {product.image && (
+                      <img
+                        src={product.image.startsWith('http') ? product.image : `${currentConfig.baseURL}${product.image}`}
+                        alt={product.title}
+                        className="rounded me-2"
+                        width="50"
+                        height="50"
+                      />
+                    )}
                     <div>
                       <div className="fw-bold">{product.title}</div>
-                      
                     </div>
                   </div>
                 </td>
                 <td>{product.category}</td>
-                <td>${product.price}</td>
+                <td>₹{product.price}</td>
                 <td>
                   {product.status ? (
                     <span className="badge bg-success">Active</span>
@@ -168,121 +241,23 @@ const Products = () => {
                 <td className="text-center">
                   <button
                     className="btn btn-outline-danger btn-sm"
-                    onClick={() => handleDelete(product.id)}
+                    onClick={() => handleDelete(product._id)}
                   >
-                    <FaDeleteLeft  />
+                    <FaDeleteLeft />
                   </button>
                 </td>
               </tr>
             ))}
+            {products.length === 0 && (
+              <tr>
+                <td colSpan="6" className="text-center text-muted">
+                  No products found
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
-
-      {/* Modal */}
-      {showModal && (
-        <>
-          <div className="modal d-block" tabIndex="-1">
-            <div className="modal-dialog">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title">
-                    {editingProduct ? "Edit Product" : "Add Product"}
-                  </h5>
-                  <button
-                    type="button"
-                    className="btn-close"
-                    onClick={() => setShowModal(false)}
-                  ></button>
-                </div>
-                <div className="modal-body">
-                  <form>
-  <div className="mb-3">
-    <label className="form-label">Title</label>
-    <input
-      type="text"
-      name="title"
-      className="form-control"
-      value={formData.title}
-      onChange={handleChange}
-    />
-  </div>
-
-  <div className="mb-3">
-    <label className="form-label">Category</label>
-    <input
-      type="text"
-      name="category"
-      className="form-control"
-      value={formData.category}
-      onChange={handleChange}
-    />
-  </div>
-
-  <div className="mb-3">
-    <label className="form-label">Price</label>
-    <input
-      type="number"
-      name="price"
-      className="form-control"
-      value={formData.price}
-      onChange={handleChange}
-    />
-  </div>
-
-  <div className="mb-3">
-    <label className="form-label">Status</label>
-    <select
-      name="status"
-      className="form-select"
-      value={formData.status}
-      onChange={(e) =>
-        setFormData({ ...formData, status: e.target.value === "true" })
-      }
-    >
-      <option value="true">Active</option>
-      <option value="false">Inactive</option>
-    </select>
-  </div>
-
-  <div className="mb-3">
-    <label className="form-label">Image URL</label>
-    <input
-      type="text"
-      name="image"
-      className="form-control"
-      value={formData.image}
-      onChange={handleChange}
-      placeholder="https://example.com/image.jpg"
-    />
-    {formData.image && (
-      <div className="mt-2">
-        <img
-          src={formData.image}
-          alt="Preview"
-          className="img-thumbnail"
-          style={{ width: "100px", height: "100px", objectFit: "cover" }}
-        />
-      </div>
-    )}
-  </div>
-</form>
-
-                </div>
-                <div className="modal-footer">
-                  <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
-                    Cancel
-                  </button>
-                  <button className="btn btn-danger text-white" onClick={handleSave}>
-                    {editingProduct ? "Update" : "Add"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="modal-backdrop fade show"></div>
-        </>
-      )}
     </div>
   );
 };

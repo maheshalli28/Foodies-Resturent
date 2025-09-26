@@ -1,163 +1,88 @@
-import React, { useState, useEffect } from 'react';
-import './Menu.css';
-import 'bootstrap/dist/css/bootstrap.min.css';
+import React, { useState, useEffect } from "react";
+import "./Menu.css";
+import "bootstrap/dist/css/bootstrap.min.css";
 import { IoBagCheck } from "react-icons/io5";
-
-const menuItems = [
-  {
-    id: 1,
-    title: 'Omelette',
-    desc: 'Tasty breakfast option',
-    image: '/assets/omelette.png',
-    price: 99,
-    category: 'Breakfast',
-  },
-  {
-    id: 2,
-    title: 'Dosa',
-    desc: 'Light and Tasty option',
-    image: '/assets/Dosa.png',
-    price: 150,
-    category: 'Breakfast',
-  },
-  {
-    id: 3,
-    title: 'Mutton Biryani',
-    desc: 'Spicy and flavorful',
-    image: '/assets/Mutton.png',
-    price: 139,
-    category: 'Lunch',
-  },
-  {
-    id: 4,
-    title: 'Malai Tikka',
-    desc: 'Creamy grilled chicken',
-    image: '/assets/Malai.png',
-    price: 235,
-    category: 'Dinner',
-  },
-  {
-    id: 5,
-    title: 'Idli & Sambar',
-    desc: 'A South Indian staple.',
-    image: '/assets/Idli.png',
-    price: 199,
-    category: 'Breakfast',
-  },
-  {
-    id: 6,
-    title: 'Chicken Shawarma',
-    desc: 'Wrapped flavor on the go.',
-    image: '/assets/Chicken-Shawarma.png',
-    price: 299,
-    category: 'Dinner',
-  },
-  {
-    id: 7,
-    title: 'Aloo Paratha',
-    desc: 'Stuffed flatbread with curd or butter',
-    image: '/assets/Aloo-Paratha.png',
-    price: 90,
-    category: 'Breakfast',
-  },
-  {
-    id: 8,
-    title: 'Curd Rice',
-    desc: 'Cool, calm, and comforting.',
-    image: '/assets/Curd.png',
-    price: 150,
-    category: 'Lunch',
-  },
-  {
-    id: 9,
-    title: 'Grilled Fish',
-    desc: 'Where spice meets silky smoothness',
-    image: '/assets/Fish.png',
-    price: 139,
-    category: 'Lunch',
-  },
-  {
-    id: 10,
-    title: 'Chicken Curry',
-    desc: 'Classic comfort & fiery soul',
-    image: '/assets/Chicken.png',
-    price: 235,
-    category: 'Dinner',
-  },
-  {
-    id: 11,
-    title: 'Paneer Pizza',
-    desc: 'Cheesy veg pizza',
-    image: '/assets/pizza.png',
-    price: 199,
-    category: 'Lunch',
-  },
-  {
-    id: 12,
-    title: 'Grilled Tikka',
-    desc: 'Delicious chicken bites',
-    image: '/assets/tikkag.png',
-    price: 299,
-    category: 'Dinner',
-  },
-];
+import { IoBagHandleOutline } from "react-icons/io5";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { getApiUrl, API_ENDPOINTS } from "../config/api";
 
 const Menu = ({ cartItems, setCartItems }) => {
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [popupMessage, setPopupMessage] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [products, setProducts] = useState([]);
+  const [popupMessage, setPopupMessage] = useState("");
+  const navigate = useNavigate();
 
-  const categories = ['All', 'Breakfast', 'Lunch', 'Dinner'];
+  const categories = ["All", "Breakfast", "Lunch", "Dinner", "Desserts"];
 
+  // 🔹 Fetch products from backend
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await axios.get(getApiUrl(API_ENDPOINTS.PRODUCTS.LIST));
+        setProducts(res.data);
+      } catch (err) {
+        console.error("❌ Error fetching products:", err);
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  // 🔹 Filter products by category
   const filteredItems =
-    selectedCategory === 'All'
-      ? menuItems
-      : menuItems.filter(item => item.category === selectedCategory);
+    selectedCategory === "All"
+      ? products
+      : products.filter((p) => p.category === selectedCategory);
 
+  // 🔹 Split into 2 columns
   const mid = Math.ceil(filteredItems.length / 2);
   const leftColumn = filteredItems.slice(0, mid);
   const rightColumn = filteredItems.slice(mid);
 
-  // Add item to cart and show popup
-  const addToCart = (item) => {
+  // 🔹 Add item to cart with popup
+  const addToCart = (product) => {
     setCartItems((prevCart) => {
-      const existingItem = prevCart.find(cartItem => cartItem.id === item.id);
+      const existingItem = prevCart.find((item) => item.id === product._id);
+
       if (existingItem) {
-        setPopupMessage(`${item.title} quantity updated`);
-        return prevCart.map(cartItem =>
-          cartItem.id === item.id
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
+        setPopupMessage(`${product.title} quantity updated`);
+        return prevCart.map((item) =>
+          item.id === product._id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
         );
       } else {
-        setPopupMessage(`${item.title} added to cart`);
-        return [...prevCart, { ...item, quantity: 1 }];
+        setPopupMessage(`${product.title} added to cart`);
+        return [...prevCart, { ...product, id: product._id, quantity: 1 }];
       }
     });
 
-    // Hide message after 2 seconds
-    setTimeout(() => setPopupMessage(''), 2000);
+    // Hide popup after 2s
+    setTimeout(() => setPopupMessage(""), 2000);
   };
 
-  useEffect(() => {
-    console.log("Cart Items:", cartItems);
-  }, [cartItems]);
+  // Calculate total items in cart
+  const totalCartItems = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   return (
     <section className="menu-section py-5 min-vh-100" id="menu">
-      <div className="container">
-        {/* Title & Categories */}
+      <div className="container py-5">
+        {/* 🔹 Title & Categories */}
         <div className="text-center mb-5">
           <h5 className="subtext text-danger fw-semibold">Food Menu</h5>
           <h2 className="display-5 fw-bold">Most Popular Items</h2>
+
           <div className="d-flex justify-content-center gap-4 mt-4 flex-wrap">
             {categories.map((cat) => (
               <div
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`cursor-pointer ${
-                  selectedCategory === cat ? 'text-danger border-bottom border-3 border-danger' : 'text-dark'
-                } pb-1 fw-semibold`}
-                style={{ cursor: 'pointer' }}
+                className={`pb-1 fw-semibold ${
+                  selectedCategory === cat
+                    ? "text-danger border-bottom border-3 border-danger"
+                    : "text-dark"
+                }`}
+                style={{ cursor: "pointer" }}
               >
                 {cat}
               </div>
@@ -165,56 +90,98 @@ const Menu = ({ cartItems, setCartItems }) => {
           </div>
         </div>
 
-        {/* Menu Grid */}
+        {/* 🔹 Menu Grid */}
         <div className="row">
-          {[leftColumn, rightColumn].map((column, colIdx) => (
-            <div className="col-md-6" key={colIdx}>
-              {column.map((item) => (
+          {[leftColumn, rightColumn].map((column, idx) => (
+            <div key={idx} className="col-md-6">
+              {column.map((product) => (
                 <div
-                  className="d-flex justify-content-between align-items-center border-bottom py-3"
-                  key={item.id}
+                  key={product._id}
+                  className={`d-flex justify-content-between align-items-center border-bottom py-3 
+                    ${product.status === false ? "opacity-50" : ""}`}
                 >
                   {/* Left: Image + Title */}
                   <div className="d-flex align-items-center">
                     <img
-                      src={item.image}
-                      alt={item.title}
+                      src={product.image?.startsWith('http') ? product.image : `http://localhost:5000${product.image}`}
+                      alt={product.title}
                       className="rounded"
-                      style={{ width: '70px', height: '70px', objectFit: 'cover' }}
+                      style={{
+                        width: "80px",
+                        height: "80px",
+                        objectFit: "cover",
+                        filter: product.status === false ? "grayscale(50%)" : "none"
+                      }}
                     />
                     <div className="ms-3">
-                      <h6 className="fw-bold mb-1">{item.title}</h6>
-                      <small className="text-muted fst-italic">{item.desc}</small>
+                      <h6 className="fw-bold mb-1">{product.title}</h6>
+                      <small className="text-muted fst-italic">
+                        {product.desc || "A taste for every mood."}
+                      </small>
+                      {product.status === false && (
+                        <div className="text-danger small fw-bold">Unavailable</div>
+                      )}
                     </div>
                   </div>
 
                   {/* Right: Price + Add to Cart */}
                   <div className="d-flex align-items-center gap-3">
-                    <div className="text-danger fw-bold" style={{ fontSize: '1.1rem' }}>
-                      ₹{item.price}
+                    <div
+                      className="text-danger fw-bold"
+                      style={{ fontSize: "1.1rem" }}
+                    >
+                      ₹{product.price}
                     </div>
                     <button
-                      className="btn btn-outline-success border-1 rounded-pill d-flex align-items-center gap-2"
-                      onClick={() => addToCart(item)}
+                      className="btn btn-outline-success rounded-pill d-flex align-items-center gap-2"
+                      onClick={() => addToCart(product)}
+                      disabled={product.status === false}   // ✅ disable button
                     >
                       <IoBagCheck className="fs-5" />
                     </button>
                   </div>
                 </div>
               ))}
+
             </div>
           ))}
         </div>
       </div>
 
-      {/* ✅ Simple Popup Message */}
+      {/* 🔹 Floating Cart Button */}
+      {totalCartItems > 0 && (
+        <button
+          className="btn btn-danger position-fixed rounded-circle shadow-lg"
+          style={{
+            bottom: '30px',
+            right: '30px',
+            width: '60px',
+            height: '60px',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.2rem'
+          }}
+          onClick={() => navigate('/cart')}
+        >
+          <IoBagHandleOutline size={24} />
+          <span 
+            className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark"
+            style={{ fontSize: '0.7rem', minWidth: '20px', height: '20px' }}
+          >
+            {totalCartItems}
+          </span>
+        </button>
+      )}
+
+      {/* 🔹 Popup Message */}
       {popupMessage && (
         <div
-          className="position-fixed top-0 end-0 mt-5 me-0 p-1  "
+          className="position-fixed top-0 end-0 mt-5 me-3 p-2 bg-success text-white rounded shadow"
           style={{ zIndex: 1000 }}
         >
-          <p className='mt-3 bg-success text-white p-1'>{popupMessage }</p>
-          
+          {popupMessage}
         </div>
       )}
     </section>

@@ -3,8 +3,6 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Navigate,
-  useLocation,
 } from "react-router-dom";
 
 import RestaurantNavbar from "./components/Navbar.jsx";
@@ -12,16 +10,21 @@ import Home from "./components/Home.jsx";
 import About from "./components/About.jsx";
 import Features from "./components/Features.jsx";
 import Contact from "./components/Contact.jsx";
+import AdminDashboard from "./components/Admin.jsx";
+import Login from "./components/Login.jsx";
+import { useAuth } from "./context/AuthContext.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 import "./App.css";
 
 // 🔄 Lazy load components
 const Menu = lazy(() => import("./components/Menu.jsx"));
-const AdminDashboard = lazy(() => import("./components/Admin.jsx"));
-const AuthModal = lazy(() => import("./components/AuthModal.jsx"));
-const CartPage = lazy(() => import("./components/Cart.jsx"));
 
-// Wrapper to use useLocation
+const CartPage = lazy(() => import("./components/Cart.jsx"));
+const ConfirmOrder = lazy(() => import("./components/ConfirmOrder.jsx"));
+const OrderOverview = lazy(() => import("./components/OrderOverview.jsx"));
+
+// Wrapper to use Router
 function AppWrapper() {
   return (
     <Router>
@@ -31,55 +34,38 @@ function AppWrapper() {
 }
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [showAuth, setShowAuth] = useState(false);
   const [cartItems, setCartItems] = useState([]);
+  const { user, loading } = useAuth();
+  
 
-  const location = useLocation();
-
-  const handleLogin = (userInfo) => {
-    setUser(userInfo);
-    setShowAuth(false);
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-  };
-
-  const AdminRoute = ({ children }) => {
-    if (!user || user.role !== "admin") {
-      return <Navigate to="/" replace />;
-    }
-    return children;
-  };
 
   return (
     <>
-      <RestaurantNavbar
-        user={user}
-        onLoginClick={() => setShowAuth(true)}
-        onLogoutClick={handleLogout}
-      />
+      <RestaurantNavbar cartItems={cartItems} />
 
       {/* 🔃 Suspense fallback while loading */}
       <Suspense fallback={<div className="loading">Loading...</div>}>
         <Routes>
+          {/* Home page */}
           <Route
             path="/"
             element={
               <>
                 <Home />
-                <Menu cartItems={cartItems} setCartItems={setCartItems} />
                 <About />
                 <Features />
                 <Contact />
               </>
             }
           />
+          <Route path="/menu" element={
+            <>
+              <Menu cartItems={cartItems} setCartItems={setCartItems} />
+              <Contact />
+            </>
+          } />
 
-          <Route
-            path="/cart"
-            element={
+          <Route path="/cart" element={
               <>
                 <CartPage cartItems={cartItems} setCartItems={setCartItems} />
                 <Contact />
@@ -87,24 +73,29 @@ function App() {
             }
           />
 
-          <Route
-            path="/admin"
-            element={
-              <AdminRoute>
-                <AdminDashboard />
-              </AdminRoute>
-            }
-          />
-        </Routes>
 
-        {/* Auth Modal (lazy-loaded) */}
-        {showAuth && (
-          <AuthModal
-            show={showAuth}
-            onClose={() => setShowAuth(false)}
-            onLogin={handleLogin}
-          />
-        )}
+          {/* Separate Confirm Order page */}
+          <Route path="/confirm-order" element={
+            <>
+              <ConfirmOrder />
+              <Contact />
+            </>
+          } />
+
+          <Route path="/login" element={<Login />} />
+
+          <Route path="/order-overview" element={
+            <>
+              <OrderOverview />
+              <Contact />
+            </>
+          } />
+
+          {/* Admin protected route */}
+          <Route path="/admin" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
+
+          </Routes>
+
       </Suspense>
     </>
   );
