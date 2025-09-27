@@ -103,7 +103,7 @@ const Menu = ({ cartItems, setCartItems }) => {
                   {/* Left: Image + Title */}
                   <div className="d-flex align-items-center">
                     <img
-                      src={product.image?.startsWith('http') ? product.image : `http://localhost:5000${product.image}`}
+                      src={product.image?.startsWith('http') ? product.image : `https://resturent-backend-n537.onrender.com/${product.image}`}
                       alt={product.title}
                       className="rounded"
                       style={{
