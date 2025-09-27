@@ -1,6 +1,6 @@
 // ✅ Simple API Configuration
 const API_CONFIG = {
-  baseURL: process.env.REACT_APP_API_BASE_URL || 'https://resturent-backend-n537.onrender.com',
+  baseURL: 'https://resturent-backend-n537.onrender.com',
   timeout: 15000
 };
 
