@@ -1,4 +1,7 @@
-// API Configuration - Production only
+import { getApiUrl, API_ENDPOINTS } from './apiConfig';
+import axios from 'axios';// API Configuration - Production only
+
+
 const API_CONFIG = {
     production: {
       baseURL: process.env.REACT_APP_API_BASE_URL || 'https://resturent-backend-n537.onrender.com',
@@ -42,9 +45,9 @@ const API_CONFIG = {
   };
   
   // Helper function to get full URL
-  export const getApiUrl = (endpoint) => {
-    const config = getApiConfig();
-    return `${config.baseURL}${endpoint}`;
+  const fetchProducts = async () => {
+    const res = await axios.get(getApiUrl(API_ENDPOINTS.PRODUCTS.LIST));
+    return res.data;
   };
   
   // Export current configuration
